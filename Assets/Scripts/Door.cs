@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class Door : MonoBehaviour
 {
@@ -9,6 +10,10 @@ public class Door : MonoBehaviour
     private Vector3 closedPositon;
 
     public float doorTime = 1f;
+    public float openTime = 2f;
+
+    public UnityEvent whenOpen;
+    public UnityEvent whenClosed;
 
 
     public enum State {open, closed, opening, closing}
@@ -16,16 +21,19 @@ public class Door : MonoBehaviour
 
     IEnumerator OpeningDoor(){
         status = State.opening;
+        Vector3 startPosition = transform.position;
         float time = 0f;
         while(time < doorTime){
             time += Time.deltaTime;
             float ratio = time/doorTime;
-            transform.position = Vector3.Lerp(closedPositon, openPosition, ratio); 
+            transform.position = Vector3.Lerp(startPosition, openPosition, ratio); 
             yield return null;
         }
 
         transform.position = openPosition;
         status = State.open;
+        yield return new WaitForSeconds(openTime);
+        CloseDoor();
     }
 IEnumerator ClosingDoor(){
         status = State.closing;
@@ -54,14 +62,12 @@ IEnumerator ClosingDoor(){
     {
     }
 
-
     private void OpenDoor(){
         StartCoroutine(OpeningDoor());
     }
 
     private void CloseDoor(){
-        transform.position = closedPositon;
-        status = State.closed;
+        StartCoroutine(ClosingDoor());
     }
 
     private void OnTriggerEnter(Collider other) {
@@ -69,8 +75,9 @@ IEnumerator ClosingDoor(){
             if(status == State.closed) {
                 OpenDoor();
                 }
-            else if(status == State.open){
-                CloseDoor();
+            else if(status == State.closing){
+                StopAllCoroutines();
+                OpenDoor();
             }
         }
     }
